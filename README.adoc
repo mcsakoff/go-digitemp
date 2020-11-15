@@ -1,0 +1,100 @@
+= 1-Wire protocol implementation in Go
+:icons: font
+ifdef::env-github[:outfilesuffix: .adoc]
+
+image:https://img.shields.io/badge/License-MIT-yellow.svg[License: MIT,link=https://opensource.org/licenses/MIT]
+
+This is a Go port of link:https://github.com/mcsakoff/pydigitemp[pyDigiTemp].
+
+[WARNING]
+The very beta version.
+
+Originally written in Python to replace link:https://www.digitemp.com/[digitemp] utility in my pet project
+and get direct access to 1-wire devices. It was created for reading DS1820 temperature sensor connected
+to RS232 serial port through DS9097 adapter.
+
+== Documentation used
+
+* link:http://www.maximintegrated.com/en/app-notes/index.mvp/id/214[Using an UART to Implement a 1-Wire Bus Master]
+* link:http://pdfserv.maximintegrated.com/en/an/AN937.pdf[Book of iButton® Standards] (PDF)
+* link:http://datasheets.maximintegrated.com/en/ds/DS18S20.pdf[DS18S20 High-Precision 1-Wire Digital Thermometer] (PDF)
+
+== Supported Hardware
+
+=== Bus Driver
+
+* link:http://www.maximintegrated.com/en/products/comms/ibutton/DS9097.html[DS9097] - COM port adapter which performs RS-232C level conversion.
+* Custom 1-wire serial port interface (see below).
+
+=== 1-Wire Devices Supported
+
+* link:http://www.maximintegrated.com/en/products/analog/sensors-and-sensor-interface/DS18S20.html[DS1820 / DS18S20 / DS1920] - High-Precision Temperature Sensor.
+* link:http://www.maximintegrated.com/en/products/analog/sensors-and-sensor-interface/DS18B20.html[DS18B20] - Programmable Resolution Temperature Sensor.
+* link:http://www.maximintegrated.com/en/products/analog/sensors-and-sensor-interface/DS1822.html[DS1822] - Econo Temperature Sensor.
+
+== Usage
+
+[TIP]
+See detailed examples in _examples_ directory.
+
+.Find ROM codes for all connected devices:
+[source,go]
+----
+uart, _ := NewUartAdapter("/dev/cu.usbserial-1410")
+roms, _ := NewAddressableDevice(uart).GetConnectedROMs()
+for n, rom := range roms {
+    log.Printf("%d: %s\n", n, rom)
+}
+----
+
+.Get temperature from single sensor:
+[source,go]
+----
+uart, _ := NewUartAdapter("/dev/cu.usbserial-1410")
+sensor, _ := NewTemperatureSensor(uart, nil, true)
+temp, _ := sensor.GetTemperatureFloat()
+log.Printf("%.02f\n", temp)
+----
+
+== Schematics
+
+[WARNING]
+====
+*IMPORTANT DISCLAIMER*:
+
+All circuits presented here are collected from different sources on the Internet and thus are
+provided on an entirely "as-is and no guarantees" basis. I do not provide a warranty of any kind and cannot be held
+responsible in any manner.
+====
+
+=== 1-wire serial port interface
+
+See link:http://martybugs.net/electronics/tempsensor/hardware.cgi[Serial Port Temperature Sensors - Hardware Interface]
+for details.
+
+=== USB/UART adapter
+
+==== These are tested:
+
+- link:docs/ds18b20-uart.svg[Simple connect in normal mode]
+- link:docs/ds18b20-uart-par.svg[Simple connect in parasitic mode]
+- link:docs/ds18b20-uart-dioda.svg[Using diode in normal mode]
+- link:docs/ds18b20-uart-diodapar.svg[Using diode in parasitic mode]
+
+Not all schematics work in all cases, depending on an adapter and cable length.
+
+==== These are not tested yet:
+
+- link:docs/ds18b20-uart-mosfet.svg[Using MOSFET transistors]
+- link:docs/ds18b20-uart-npn.svg[.Using NPN transistors]
+
+== Kudos To
+
+* link:https://github.com/slavkoja[Slavko] for SVG schematics and testing python version.
+
+== License
+
+Copyright (C) 2020 Alexey McSakoff +
+Free use of this software is granted under the terms of the MIT License.
+
+See the <<LICENSE#,LICENSE>> file for details.
