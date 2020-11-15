@@ -68,7 +68,7 @@ func main() {
 				if tc, err := sensor.GetTemperatureFloat(); err != nil {
 					measurements[n] = "error"
 				} else {
-					measurements[n] = fmt.Sprintf("%.02f", tc)
+					measurements[n] = fmt.Sprintf("%.02fºC", tc)
 				}
 			}
 			log.Println(strings.Join(measurements, "   "))

@@ -1,6 +1,8 @@
 package digitemp
 
 import (
+	"bytes"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"time"
@@ -30,6 +32,12 @@ type TemperatureSensor struct {
 	tRW           time.Duration // eeprom write time
 }
 
+//
+// Create new temperature sensor instance.
+//
+// If rom is nil, it will read ROM code from the bus. It works in case of only one sensor connected.
+// If required is false, it will not fail with error if the sensor doesn't respond during initialization.
+//
 func NewTemperatureSensor(bus *UARTAdapter, rom *ROM, required bool) (*TemperatureSensor, error) {
 	s := &TemperatureSensor{
 		AddressableDevice: AddressableDevice{
@@ -143,6 +151,9 @@ func (s *TemperatureSensor) LoadEEPROM() error {
 	return nil
 }
 
+//
+// Returns temperature * 100 ºC
+//
 func (s *TemperatureSensor) GetTemperature() (int, error) {
 	s.bus.Lock()
 	defer s.bus.Unlock()
@@ -153,10 +164,13 @@ func (s *TemperatureSensor) GetTemperature() (int, error) {
 	if sp, err := s.readScratchpad(); err != nil {
 		return 0, err
 	} else {
-		return s.calcTemperature(sp), nil
+		return s.calcTemperature(sp) / 100, nil
 	}
 }
 
+//
+// Returns temperature ºC
+//
 func (s *TemperatureSensor) GetTemperatureFloat() (float32, error) {
 	if t, err := s.GetTemperature(); err != nil {
 		return 0, err
@@ -382,20 +396,25 @@ func (s *TemperatureSensor) wait(duration time.Duration) error {
 	return nil
 }
 
+//
+// Read temperature value from the scratchpad
+// Returns temperature * 10000 ºC
+//
 func (s *TemperatureSensor) calcTemperature(scratchpad []byte) int {
+	var t int16
+	_ = binary.Read(bytes.NewReader(scratchpad), binary.LittleEndian, &t)
+
 	var temp int
 	switch s.familyCode {
 	case 0x10:
-		temp = int(uint(scratchpad[0])+(uint(scratchpad[1])<<8)) * 50
+		temp = int(t) * 5000
 		if s.resolution > BSResolution9bits {
 			countRemain := int(scratchpad[6])
 			countPerC := int(scratchpad[7])
-			temp = temp - 25 + 100*(countPerC-countRemain)/countPerC
+			temp = temp - 2500 + 10000*(countPerC-countRemain)/countPerC
 		}
 	case 0x22, 0x28:
-		temp = int(uint(scratchpad[0])+(uint(scratchpad[1])<<8)) * 10000 / 16
-		temp = (temp + 50) / 100
+		temp = int(t) * 10000 / 16
 	}
-	// TODO: calc from scratchpad
 	return temp
 }

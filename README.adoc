@@ -3,6 +3,7 @@
 ifdef::env-github[:outfilesuffix: .adoc]
 
 image:https://img.shields.io/badge/License-MIT-yellow.svg[License: MIT,link=https://opensource.org/licenses/MIT]
+image:https://goreportcard.com/badge/github.com/mcsakoff/go-digitemp[Go Report Card,link=https://goreportcard.com/report/github.com/mcsakoff/go-digitemp]
 
 This is a Go port of link:https://github.com/mcsakoff/pydigitemp[pyDigiTemp].
 

@@ -25,7 +25,7 @@ func TestROM_toBits(t *testing.T) {
 	str := "2825EA520510F3CE"
 	rom, err := NewROMFromString(str)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	newRom := newRomFromBits(rom.toBits())
 	if newRom.String() != str {

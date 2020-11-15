@@ -28,5 +28,5 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Printf("Temperature: %.02f\n", temp)
+	log.Printf("Temperature: %.02fºC\n", temp)
 }
