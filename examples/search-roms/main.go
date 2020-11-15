@@ -15,7 +15,7 @@ func main() {
 	}()
 
 	log.Println("Searching ROMs")
-	if roms, err := digitemp.NewAddressableDevice(uart).GetConnectedROMs(); err != nil {
+	if roms, err := uart.GetConnectedROMs(); err != nil {
 		log.Fatal(err)
 	} else {
 		for n, rom := range roms {

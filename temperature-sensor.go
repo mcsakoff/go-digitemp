@@ -17,7 +17,7 @@ const (
 )
 
 type TemperatureSensor struct {
-	AddressableDevice
+	bus           *UARTAdapter
 	rom           *ROM
 	familyCode    byte
 	singleMode    bool
@@ -37,21 +37,19 @@ type TemperatureSensor struct {
 //
 func NewTemperatureSensor(bus *UARTAdapter, rom *ROM, required bool) (*TemperatureSensor, error) {
 	s := &TemperatureSensor{
-		AddressableDevice: AddressableDevice{
-			bus: bus,
-		},
+		bus:        bus,
 		rom:        rom,
 		resolution: Resolution9bits,
 		tConv:      750 * time.Millisecond,
 		tRW:        10 * time.Millisecond,
 	}
 
-	s.bus.Lock()
-	defer s.bus.Unlock()
+	s.bus.lock()
+	defer s.bus.unlock()
 
 	if s.rom == nil {
 		s.singleMode = true
-		if rom, err := s.readROM(); err != nil {
+		if rom, err := s.bus.readROM(); err != nil {
 			if required {
 				return nil, errors.New("cannot read sensor's ROM code")
 			}
@@ -60,7 +58,7 @@ func NewTemperatureSensor(bus *UARTAdapter, rom *ROM, required bool) (*Temperatu
 		}
 	} else {
 		s.singleMode = false
-		if online, err := s.isConnected(s.rom); err != nil {
+		if online, err := s.bus.isConnected(s.rom); err != nil {
 			return nil, err
 		} else {
 			if required && !online {
@@ -129,8 +127,8 @@ func (s *TemperatureSensor) IsParasiticMode() bool {
 }
 
 func (s *TemperatureSensor) SaveEEPROM() error {
-	s.bus.Lock()
-	defer s.bus.Unlock()
+	s.bus.lock()
+	defer s.bus.unlock()
 
 	if err := s.copyScratchpad(); err != nil {
 		return err
@@ -139,8 +137,8 @@ func (s *TemperatureSensor) SaveEEPROM() error {
 }
 
 func (s *TemperatureSensor) LoadEEPROM() error {
-	s.bus.Lock()
-	defer s.bus.Unlock()
+	s.bus.lock()
+	defer s.bus.unlock()
 
 	if err := s.recallScratchpad(); err != nil {
 		return err
@@ -152,8 +150,8 @@ func (s *TemperatureSensor) LoadEEPROM() error {
 // Returns temperature * 100 ºC
 //
 func (s *TemperatureSensor) GetTemperature() (int, error) {
-	s.bus.Lock()
-	defer s.bus.Unlock()
+	s.bus.lock()
+	defer s.bus.unlock()
 
 	if err := s.convertT(); err != nil {
 		return 0, err
@@ -177,8 +175,8 @@ func (s *TemperatureSensor) GetTemperatureFloat() (float32, error) {
 }
 
 func (s *TemperatureSensor) GetAlarms() (int8, int8, error) {
-	s.bus.Lock()
-	defer s.bus.Unlock()
+	s.bus.lock()
+	defer s.bus.unlock()
 
 	if sp, err := s.readScratchpad(); err != nil {
 		return 0, 0, err
@@ -188,8 +186,8 @@ func (s *TemperatureSensor) GetAlarms() (int8, int8, error) {
 }
 
 func (s *TemperatureSensor) SetAlarms(high int8, low int8) error {
-	s.bus.Lock()
-	defer s.bus.Unlock()
+	s.bus.lock()
+	defer s.bus.unlock()
 
 	var scratchpad []byte
 	if sp, err := s.readScratchpad(); err != nil {
@@ -253,7 +251,7 @@ func (s *TemperatureSensor) convertT() error {
 	if err := s.reset(); err != nil {
 		return err
 	}
-	if err := s.bus.WriteByte(0x44); err != nil {
+	if err := s.bus.writeByte(0x44); err != nil {
 		return err
 	}
 	if err := s.wait(s.tConv); err != nil {
@@ -270,10 +268,10 @@ func (s *TemperatureSensor) inParasiticMode() (bool, error) {
 	if err := s.reset(); err != nil {
 		return false, err
 	}
-	if err := s.bus.WriteByte(0xb4); err != nil {
+	if err := s.bus.writeByte(0xb4); err != nil {
 		return false, err
 	}
-	if pm, err := s.bus.ReadBit(); err != nil {
+	if pm, err := s.bus.readBit(); err != nil {
 		return false, err
 	} else {
 		return pm == 0b0, nil
@@ -288,11 +286,11 @@ func (s *TemperatureSensor) readScratchpad() ([]byte, error) {
 	if err := s.reset(); err != nil {
 		return nil, err
 	}
-	if err := s.bus.WriteByte(0xbe); err != nil {
+	if err := s.bus.writeByte(0xbe); err != nil {
 		return nil, err
 	}
 	var data = make([]byte, 9)
-	if _, err := s.bus.ReadBytes(data); err != nil {
+	if _, err := s.bus.readBytes(data); err != nil {
 		return nil, err
 	}
 	scratchpad := data[0:8]
@@ -312,10 +310,10 @@ func (s *TemperatureSensor) writeScratchpad(data []byte) error {
 	if err := s.reset(); err != nil {
 		return err
 	}
-	if err := s.bus.WriteByte(0x4e); err != nil {
+	if err := s.bus.writeByte(0x4e); err != nil {
 		return err
 	}
-	if _, err := s.bus.WriteBytes(data); err != nil {
+	if _, err := s.bus.writeBytes(data); err != nil {
 		return err
 	}
 	return nil
@@ -329,7 +327,7 @@ func (s *TemperatureSensor) copyScratchpad() error {
 	if err := s.reset(); err != nil {
 		return err
 	}
-	if err := s.bus.WriteByte(0x48); err != nil {
+	if err := s.bus.writeByte(0x48); err != nil {
 		return err
 	}
 	if err := s.wait(s.tRW); err != nil {
@@ -349,7 +347,7 @@ func (s *TemperatureSensor) recallScratchpad() error {
 	if err := s.reset(); err != nil {
 		return err
 	}
-	if err := s.bus.WriteByte(0xb8); err != nil {
+	if err := s.bus.writeByte(0xb8); err != nil {
 		return err
 	}
 	if err := s.wait(s.tConv); err != nil {
@@ -363,9 +361,9 @@ func (s *TemperatureSensor) recallScratchpad() error {
 //
 func (s *TemperatureSensor) reset() error {
 	if s.singleMode {
-		return s.skipROM()
+		return s.bus.skipROM()
 	} else {
-		return s.matchROM(s.rom)
+		return s.bus.matchROM(s.rom)
 	}
 }
 
@@ -378,7 +376,7 @@ func (s *TemperatureSensor) wait(duration time.Duration) error {
 	} else {
 		startedAt := time.Now()
 		for {
-			if b, err := s.bus.ReadBit(); err != nil {
+			if b, err := s.bus.readBit(); err != nil {
 				return err
 			} else {
 				if b != 0b0 {

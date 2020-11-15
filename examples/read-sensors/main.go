@@ -32,11 +32,10 @@ func main() {
 		_ = uart.Close()
 	}()
 
-	device := digitemp.NewAddressableDevice(uart)
 	sensors := make([]*digitemp.TemperatureSensor, 0)
 
 	log.Println("Searching ROMs")
-	if roms, err := device.GetConnectedROMs(); err != nil {
+	if roms, err := uart.GetConnectedROMs(); err != nil {
 		log.Fatal(err)
 	} else {
 		for n, rom := range roms {

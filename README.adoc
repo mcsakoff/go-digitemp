@@ -45,8 +45,10 @@ See detailed examples in _examples_ directory.
 .Find ROM codes for all connected devices:
 [source,go]
 ----
-uart, _ := NewUartAdapter("/dev/cu.usbserial-1410")
-roms, _ := NewAddressableDevice(uart).GetConnectedROMs()
+import "github.com/mcsakoff/go-digitemp"
+
+uart, _ := digitemp.NewUartAdapter("/dev/cu.usbserial-1410")
+roms, _ := uart.GetConnectedROMs()
 for n, rom := range roms {
     log.Printf("%d: %s\n", n, rom)
 }
@@ -55,10 +57,26 @@ for n, rom := range roms {
 .Get temperature from single sensor:
 [source,go]
 ----
-uart, _ := NewUartAdapter("/dev/cu.usbserial-1410")
-sensor, _ := NewTemperatureSensor(uart, nil, true)
+import "github.com/mcsakoff/go-digitemp"
+
+uart, _ := digitemp.NewUartAdapter("/dev/cu.usbserial-1410")
+sensor, _ := digitemp.NewTemperatureSensor(uart, nil, true)
 temp, _ := sensor.GetTemperatureFloat()
-log.Printf("%.02f\n", temp)
+
+log.Printf("%.02fºC\n", temp)
+----
+
+.Get temperature from specific sensor:
+[source,go]
+----
+import "github.com/mcsakoff/go-digitemp"
+
+rom, _ := digitemp.NewROMFromString("10A75CA80208001A")
+uart, _ := digitemp.NewUartAdapter("/dev/cu.usbserial-1410")
+sensor, _ := digitemp.NewTemperatureSensor(uart, rom, true)
+temp, _ := sensor.GetTemperatureFloat()
+
+log.Printf("%.02fºC\n", temp)
 ----
 
 == Schematics
