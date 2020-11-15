@@ -54,7 +54,7 @@ func main() {
 		log.Printf("    Device: %s", sensor.GetName())
 		log.Printf("       ROM: %s", sensor.GetROM())
 		log.Printf(" Parasitic: %t", sensor.IsParasiticMode())
-		if err := sensor.SetResolution(digitemp.BS18B20Resolution12bits); err != nil {
+		if err := sensor.SetResolution(digitemp.Resolution12bits); err != nil {
 			log.Println("failed to set resolution")
 		}
 		log.Printf("Resolution: %s", sensor.GetPrecision())

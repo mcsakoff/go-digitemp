@@ -37,7 +37,7 @@ func TestTemperatureSensor_DS18B20_calcTemperature(t *testing.T) {
 func TestTemperatureSensor_DS18S20_calcTemperature(t *testing.T) {
 	var sensor = TemperatureSensor{
 		familyCode: 0x10, // DS18S20
-		resolution: BSResolution9bits,
+		resolution: Resolution9bits,
 	}
 	var testcases = []calcTemperatureTestcase{
 		{[]byte{0xaa, 0x00}, 850000},  //  85.0

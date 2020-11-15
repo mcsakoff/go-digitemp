@@ -9,14 +9,11 @@ import (
 )
 
 const (
-	BSResolution9bits = 0x0
-
-	BS18S20ResolutionExtended = 0x1
-
-	BS18B20Resolution9bits  = 0x0
-	BS18B20Resolution10bits = 0x1
-	BS18B20Resolution11bits = 0x2
-	BS18B20Resolution12bits = 0x3
+	Resolution9bits    = 0x0
+	Resolution10bits   = 0x1
+	Resolution11bits   = 0x2
+	Resolution12bits   = 0x3
+	ResolutionExtended = 0x1
 )
 
 type TemperatureSensor struct {
@@ -44,7 +41,7 @@ func NewTemperatureSensor(bus *UARTAdapter, rom *ROM, required bool) (*Temperatu
 			bus: bus,
 		},
 		rom:        rom,
-		resolution: BSResolution9bits,
+		resolution: Resolution9bits,
 		tConv:      750 * time.Millisecond,
 		tRW:        10 * time.Millisecond,
 	}
@@ -92,7 +89,7 @@ func NewTemperatureSensor(bus *UARTAdapter, rom *ROM, required bool) (*Temperatu
 
 	switch s.familyCode {
 	case 0x10:
-		if s.resolution == BSResolution9bits {
+		if s.resolution == Resolution9bits {
 			s.precision = "9 bits"
 		} else {
 			s.precision = "extended"
@@ -221,11 +218,11 @@ func (s *TemperatureSensor) GetResolution() byte {
 func (s *TemperatureSensor) SetResolution(resolution byte) error {
 	switch s.familyCode {
 	case 0x10:
-		if resolution == BSResolution9bits {
-			s.resolution = BSResolution9bits
+		if resolution == Resolution9bits {
+			s.resolution = Resolution9bits
 			s.precision = "9 bits"
 		} else {
-			s.resolution = BS18S20ResolutionExtended
+			s.resolution = ResolutionExtended
 			s.precision = "extended"
 		}
 		return nil
@@ -408,7 +405,7 @@ func (s *TemperatureSensor) calcTemperature(scratchpad []byte) int {
 	switch s.familyCode {
 	case 0x10:
 		temp = int(t) * 5000
-		if s.resolution > BSResolution9bits {
+		if s.resolution > Resolution9bits {
 			countRemain := int(scratchpad[6])
 			countPerC := int(scratchpad[7])
 			temp = temp - 2500 + 10000*(countPerC-countRemain)/countPerC
