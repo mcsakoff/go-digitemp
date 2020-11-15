@@ -1,14 +1,18 @@
 = 1-Wire protocol implementation in Go
-:icons: font
-ifdef::env-github[:outfilesuffix: .adoc]
+ifndef::env-github[:icons: font]
+ifdef::env-github[]
+:outfilesuffix: .adoc
+:caution-caption: :fire:
+:important-caption: :exclamation:
+:note-caption: :paperclip:
+:tip-caption: :bulb:
+:warning-caption: :warning:
+endif::[]
 
 image:https://img.shields.io/badge/License-MIT-yellow.svg[License: MIT,link=https://opensource.org/licenses/MIT]
 image:https://goreportcard.com/badge/github.com/mcsakoff/go-digitemp[Go Report Card,link=https://goreportcard.com/report/github.com/mcsakoff/go-digitemp]
 
 This is a Go port of link:https://github.com/mcsakoff/pydigitemp[pyDigiTemp].
-
-[WARNING]
-The very beta version.
 
 Originally written in Python to replace link:https://www.digitemp.com/[digitemp] utility in my pet project
 and get direct access to 1-wire devices. It was created for reading DS1820 temperature sensor connected
