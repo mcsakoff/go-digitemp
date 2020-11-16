@@ -45,6 +45,7 @@ func NewUartAdapter(device string) (*UARTAdapter, error) {
 		return nil, err
 	} else {
 		adapter.uart = p
+		_ = p.SetDTR(true)  // TODO: check for error
 	}
 	return adapter, nil
 }
@@ -110,36 +111,50 @@ func (a *UARTAdapter) reset() error {
 		return err
 	}
 
-	if _, err := a.uart.Write([]byte{0xf0}); err != nil {
+	if err := a.clear(); err != nil {
 		return err
 	}
-	var buffer [1]byte
-	if n, err := a.uart.Read(buffer[0:1]); err != nil {
-		return err
-	} else {
-		if n != 1 {
-			return fmt.Errorf("reset: bits expected: 1, got: %d", n)
+
+	var pulse = func() error {
+		if n, err := a.uart.Write([]byte{0xf0}); err != nil {
+			return err
+		} else{
+			if n != 1 {
+				return fmt.Errorf("failed to write reset pulse")
+			}
 		}
-		if buffer[0] == 0xff {
-			return fmt.Errorf("no 1-wire device present")
-		} else if buffer[0] < 0x10 || buffer[0] > 0xe0 {
-			return fmt.Errorf("presence error 0x%x", buffer[0])
+		var buffer [1]byte
+		if n, err := a.uart.Read(buffer[0:1]); err != nil {
+			return err
+		} else {
+			if n != 1 {
+				return fmt.Errorf("failed to read back reset pulse")
+			}
+			if buffer[0] & 0xf != 0x0 {
+				return fmt.Errorf("reset pulse error 0x%x", buffer[0])
+			}
+			if buffer[0] >> 4 == 0xf {
+				return fmt.Errorf("no 1-wire device present")
+			}
 		}
+		return nil
 	}
+	pulseErr := pulse()
 
 	a.mode.BaudRate = 115200
 	if err := a.uart.SetMode(&a.mode); err != nil {
 		return err
 	}
-	return nil
+
+	return pulseErr
 }
 
 // Discards data in input/output buffers
 func (a *UARTAdapter) clear() error {
-	if err := a.uart.ResetInputBuffer(); err != nil {
+	if err := a.uart.ResetOutputBuffer(); err != nil {
 		return err
 	}
-	if err := a.uart.ResetOutputBuffer(); err != nil {
+	if err := a.uart.ResetInputBuffer(); err != nil {
 		return err
 	}
 	return nil
@@ -165,7 +180,6 @@ func (a *UARTAdapter) readBytes(buffer []byte) (int, error) {
 			return i, err
 		}
 	}
-	i += 1
 	return i, nil
 }
 
@@ -257,7 +271,7 @@ func (a *UARTAdapter) writeByte(data byte) error {
 	}
 	for n, bit := range bits {
 		if buffer[n] != bit {
-			return fmt.Errorf("WriteByte: noize detected")
+			return fmt.Errorf("WriteByte: noize detected(got: 0x%02x, expected: 0x%02x)", buffer[n], bit)
 		}
 	}
 	return nil
