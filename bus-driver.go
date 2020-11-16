@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"go.bug.st/serial"
 	"sync"
+	"time"
 )
 
 type UARTAdapter struct {
@@ -86,6 +87,24 @@ func (a *UARTAdapter) IsConnected(rom *ROM) (bool, error) {
 	defer a.unlock()
 
 	return a.isConnected(rom)
+}
+
+// This command initiates a single temperature conversion for all connected temperature sensors at once.
+// After this command you can read temperature from each sensor using `sensor.ReadTemperature()`.
+func (a *UARTAdapter) MeasureTemperatureAll() error {
+	a.lock()
+	defer a.unlock()
+
+	if err := a.skipROM(); err != nil {
+		return err
+	}
+	if err := a.writeByte(0x44); err != nil {
+		return err
+	}
+	// We do not know if there are any DS18B20 or DS1822 on the line and what are their resolution settings.
+	// So, we just wait max(T_conv) that is 750ms for currently supported devices.
+	time.Sleep(750 * time.Millisecond)
+	return nil
 }
 
 // Close serial port.

@@ -146,9 +146,8 @@ func (s *TemperatureSensor) LoadEEPROM() error {
 	return nil
 }
 
-//
-// Returns temperature * 100 ºC
-//
+// Measure temperature and read from scratchpad
+// Returns temperature * 100 in ºC as int
 func (s *TemperatureSensor) GetTemperature() (int, error) {
 	s.bus.lock()
 	defer s.bus.unlock()
@@ -156,6 +155,29 @@ func (s *TemperatureSensor) GetTemperature() (int, error) {
 	if err := s.convertT(); err != nil {
 		return 0, err
 	}
+	return s.readTemperature()
+}
+
+// Measure temperature and read from scratchpad
+// Return temperature in ºC as float
+func (s *TemperatureSensor) GetTemperatureFloat() (float32, error) {
+	if t, err := s.GetTemperature(); err != nil {
+		return 0, err
+	} else {
+		return float32(t) / 100.0, nil
+	}
+}
+
+// Read temperature from scratchpad without measuring
+// Returns temperature * 100 in ºC as int
+func (s *TemperatureSensor) ReadTemperature() (int, error) {
+	s.bus.lock()
+	defer s.bus.unlock()
+
+	return s.readTemperature()
+}
+
+func (s *TemperatureSensor) readTemperature() (int, error) {
 	if sp, err := s.readScratchpad(); err != nil {
 		return 0, err
 	} else {
@@ -163,11 +185,10 @@ func (s *TemperatureSensor) GetTemperature() (int, error) {
 	}
 }
 
-//
-// Returns temperature ºC
-//
-func (s *TemperatureSensor) GetTemperatureFloat() (float32, error) {
-	if t, err := s.GetTemperature(); err != nil {
+// Read temperature from scratchpad without measuring
+// Returns temperature ºC as float
+func (s *TemperatureSensor) ReadTemperatureFloat() (float32, error) {
+	if t, err := s.ReadTemperature(); err != nil {
 		return 0, err
 	} else {
 		return float32(t) / 100.0, nil
@@ -243,10 +264,8 @@ func (s *TemperatureSensor) SetResolution(resolution byte) error {
 	return nil
 }
 
-//
 // CONVERT T [44h]
 // This command initiates a single temperature conversion.
-//
 func (s *TemperatureSensor) convertT() error {
 	if err := s.reset(); err != nil {
 		return err
@@ -260,10 +279,8 @@ func (s *TemperatureSensor) convertT() error {
 	return nil
 }
 
-//
 // READ POWER SUPPLY [B4h]
 // The bus driver issues this command to determine if devices on the bus are using parasite power.
-//
 func (s *TemperatureSensor) inParasiticMode() (bool, error) {
 	if err := s.reset(); err != nil {
 		return false, err
@@ -278,10 +295,8 @@ func (s *TemperatureSensor) inParasiticMode() (bool, error) {
 	}
 }
 
-//
 // READ SCRATCHPAD [BEh]
 // This command allows the bus driver to read the contents of the scratchpad.
-//
 func (s *TemperatureSensor) readScratchpad() ([]byte, error) {
 	if err := s.reset(); err != nil {
 		return nil, err
@@ -301,11 +316,9 @@ func (s *TemperatureSensor) readScratchpad() ([]byte, error) {
 	return scratchpad, nil
 }
 
-//
 // WRITE SCRATCHPAD [4Eh]
 // This command allows the master to write data to the device's scratchpad.
 // All bytes MUST be written before the master issues a reset.
-//
 func (s *TemperatureSensor) writeScratchpad(data []byte) error {
 	if err := s.reset(); err != nil {
 		return err
@@ -319,10 +332,8 @@ func (s *TemperatureSensor) writeScratchpad(data []byte) error {
 	return nil
 }
 
-//
 // COPY SCRATCHPAD [48h]
 // This command copies the contents of the scratchpad to EEPROM.
-//
 func (s *TemperatureSensor) copyScratchpad() error {
 	if err := s.reset(); err != nil {
 		return err
@@ -336,10 +347,8 @@ func (s *TemperatureSensor) copyScratchpad() error {
 	return nil
 }
 
-//
 // RECALL EE [B8h]
 // This command recalls values from EEPROM and places the data in the scratchpad memory.
-//
 func (s *TemperatureSensor) recallScratchpad() error {
 	if s.parasiticMode {
 		return nil
@@ -356,9 +365,7 @@ func (s *TemperatureSensor) recallScratchpad() error {
 	return nil
 }
 
-//
 // Send reset pulse, wait for presence and then select the device.
-//
 func (s *TemperatureSensor) reset() error {
 	if s.singleMode {
 		return s.bus.skipROM()
@@ -367,9 +374,7 @@ func (s *TemperatureSensor) reset() error {
 	}
 }
 
-//
 // Wait for specified time in parasitic mode or until operation is finished in external power mode.
-//
 func (s *TemperatureSensor) wait(duration time.Duration) error {
 	if s.parasiticMode {
 		time.Sleep(duration)
@@ -391,10 +396,8 @@ func (s *TemperatureSensor) wait(duration time.Duration) error {
 	return nil
 }
 
-//
 // Read temperature value from the scratchpad
 // Returns temperature * 10000 ºC
-//
 func (s *TemperatureSensor) calcTemperature(scratchpad []byte) int {
 	var t int16
 	_ = binary.Read(bytes.NewReader(scratchpad), binary.LittleEndian, &t)
